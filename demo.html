@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.axis text {
+  font: 10px sans-serif;
+
+}
+
+.axis line,
+
+.axis path {
+  fill: none;
+  stroke-width: 2;
+  stroke:#000;
+  shape-rendering: crispEdges;
+}
+
+</style>
+
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+//窗口高度
+var winHeight;
+//窗口宽度
+var winWidth;
+//主轴高度
+var AxisHeight;
+//开始时间
+var StartTime; 
+//结束时间
+var EndTime;
+//等级高度
+var TipHeight;
+//初始时间
+var StartTime = new Date(2013, 10, 1);
+//背景颜色 
+document.body.style.backgroundColor="#cccccc"; 
+ 
+ 
+ 
+// 获取窗口宽度
+if (window.innerWidth)
+winWidth = window.innerWidth;
+else if ((document.body) && (document.body.clientWidth))
+winWidth = document.body.clientWidth;
+// 获取窗口高度
+if (window.innerHeight)
+winHeight = window.innerHeight;
+else if ((document.body) && (document.body.clientHeight))
+winHeight = document.body.clientHeight;
+// 通过深入 Document 内部对 body 进行检测，获取窗口大小
+if (document.documentElement && document.documentElement.clientHeight && document.documentElement.clientWidth)
+{
+winHeight = document.documentElement.clientHeight;
+winWidth = document.documentElement.clientWidth;
+}
+
+AxisHeight = winHeight/2;
+TipHeight = winHeight/10;
+winWidth=10000;
+//获取当前时间
+function getNowFormatDate() {
+    var date = new Date();
+    var seperator1 = "-";
+    var seperator2 = ":";
+    var month = date.getMonth() + 1;
+    var strDate = date.getDate();
+    if (month >= 1 && month <= 9) {
+        month = "0" + month;
+    }
+    if (strDate >= 0 && strDate <= 9) {
+        strDate = "0" + strDate;
+    }
+    var currentdate = date.getFullYear() + seperator1 + month + seperator1 + strDate
+            + " " + date.getHours() + seperator2 + date.getMinutes()
+            + seperator2 + date.getSeconds();
+    return currentdate;
+}
+
+//获取时间
+
+ EndTime = new Date(
+    parseInt(getNowFormatDate().substr(0,4)),
+    parseInt(getNowFormatDate().substr(5,2)),
+    parseInt(getNowFormatDate().substr(8,2))
+    
+    );
+    
+    
+var x = d3.time.scale()
+        .domain([StartTime, EndTime])
+        .range([0, winWidth]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .ticks(0);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", winWidth)
+    .attr("height", winHeight)
+    .append("g");
+
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + winHeight/2 + ")")
+    .call(xAxis)
+    .attr("y", 6)
+    .attr("x", 6)
+    .style("text-anchor", "start");
+   
+   
+d3.csv("Logcat.csv",function(Logcat){
+
+
+        
+        
+          
+var TranslationT_P = d3.scale.linear()
+                    .domain([StartTime, EndTime])  
+                    .range([0, winWidth]);  
+ 
+var text = svg.selectAll("text")
+        .data(Logcat)
+        .enter()
+        .append("text")  
+        .attr("x",    
+   function(d){
+      return TranslationT_P(
+         new Date(
+            parseInt(d.When.substr(0,4)),
+            parseInt(d.When.substr(5,d.When.lastIndexOf("."))),
+            parseInt(d.When.substr(d.When.lastIndexOf(".")+1,d.When.length-d.When.lastIndexOf(".")-1))
+            )
+           )
+           })  
+        .attr("y",AxisHeight)  
+        .attr("font-size",30)
+        //.attr("font-family","simsun")  
+        .text(function(d){return d.What})
+        .attr("transform","rotate(2)")
+        .attr("transform-origin","(0,0)");  
+                           
+                    
+ var node = svg.selectAll('circle')
+  .data(Logcat)
+  .enter()
+  .append('circle')
+  .attr('cx', 
+  
+    function(d){
+      return TranslationT_P(
+         new Date(
+            parseInt(d.When.substr(0,4)),
+            parseInt(d.When.substr(5,d.When.lastIndexOf("."))),
+            parseInt(d.When.substr(d.When.lastIndexOf(".")+1,d.When.length-d.When.lastIndexOf(".")-1))
+            )
+           )
+           }
+    
+    )
+  .attr('cy', function(d){return AxisHeight})
+  .attr('r', function(d){if(d.Level==0) return 10;
+                         if(d.Level>0) return d.Level*4;
+                         if(d.Level<0) return d.Level*-4;})
+  .attr("opacity",1)
+  .attr('stroke',"white")
+  .attr('stroke-width',2)
+  .attr("fill", function(d){if(parseInt(d.Level)>0) return "Green";
+                            if(parseInt(d.Level)==0) return "Black";
+                            if(parseInt(d.Level)<0) return "Red";})
+  .on('mouseover', function() {
+    d3.select(this).transition().duration(500).attr("opacity",1);
+  })
+  .on('mouseout', function() {
+    d3.select(this).transition().duration(500).attr("opacity",1);
+  });
+
+  node.append("title")   
+      .text(function(d) { return d.What})
+   });
+
+
+
+</script>
