@@ -130,17 +130,39 @@ var TranslationT_P = d3.scale.linear()
             )
  }
  
+ 
+ function RectifyUpSideX(d)
+ {
+     return d+20;
+ }
+ 
+ function RectifyDownSideX(d)
+ {
+     return d+0;
+ }
+ 
+ function RectifyUpSideY()
+ {
+     return AxisHeight - 20;
+ }
+ 
+ function RectifyDownSideY()
+ {
+     return AxisHeight + 20;
+ }
+ 
+ 
  function ShowUpSidetext(d)
  {
-     return "translate(" +TranslationT_P(GetDate(d)) +","+ AxisHeight + ")" +  "rotate(" + -45 + ")"    
+     return "translate(" + RectifyUpSideX(TranslationT_P(GetDate(d))) +","+ RectifyUpSideY() + ")" +  "rotate(" + -45 + ")"    
  } 
  
  function ShowDownSidetext(d)
  {  
-     return "translate(" +TranslationT_P(GetDate(d)) +","+ AxisHeight + ")" +  "rotate(" + 45 + ")"
+     return "translate(" +RectifyDownSideX(TranslationT_P(GetDate(d))) +","+ RectifyDownSideY() + ")" +  "rotate(" + 45 + ")"
  }
  
- function Transform(d)
+ function Transform(d,i)
  {
       if((i%2)==0)
         return ShowUpSidetext(d)
@@ -153,9 +175,11 @@ var text = svg.selectAll("text")
         .enter()
         .append("text")  
         .attr("font-size",30)
-        //.attr("font-family","simsun")  
+        .attr("font-family","KaiTi")  
         .text(function(d){return d.What})
-        .attr("transform",function(d,i){ Transform(d.When)});
+        .attr("transform",function(d,i){ return Transform(d.When,i)});
+
+
 
 
 function ComputeR(d)
