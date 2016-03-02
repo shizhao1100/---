@@ -19,7 +19,7 @@
 </style>
 
 <body>
-<script src="//d3js.org/d3.v3.min.js"></script>
+<script src="d3.v3.js"></script>
 <script>
 
 //窗口高度
@@ -57,10 +57,14 @@ if (document.documentElement && document.documentElement.clientHeight && documen
 winHeight = document.documentElement.clientHeight;
 winWidth = document.documentElement.clientWidth;
 }
-
+//主轴位置
 AxisHeight = winHeight/2;
+//10等级 单等级间隔 高度（已弃） 
 TipHeight = winHeight/10;
+
+//宽度（重新定义）
 winWidth=10000;
+
 //获取当前时间
 function getNowFormatDate() {
     var date = new Date();
@@ -81,19 +85,17 @@ function getNowFormatDate() {
 }
 
 //获取时间
+var year = parseInt(getNowFormatDate().substr(0,4));
+var month = parseInt(getNowFormatDate().substr(5,2));
+var day = parseInt(getNowFormatDate().substr(8,2));
 
- EndTime = new Date(
-    parseInt(getNowFormatDate().substr(0,4)),
-    parseInt(getNowFormatDate().substr(5,2)),
-    parseInt(getNowFormatDate().substr(8,2))
+EndTime = new Date( year,month,day);
     
-    );
-    
-    
+// TimeTranslation    
 var x = d3.time.scale()
         .domain([StartTime, EndTime])
         .range([0, winWidth]);
-
+//主轴
 var xAxis = d3.svg.axis()
     .scale(x)
     .ticks(0);
@@ -114,72 +116,84 @@ svg.append("g")
    
 d3.csv("Logcat.csv",function(Logcat){
 
-
-        
-        
-          
+// 时间和像素转换          
 var TranslationT_P = d3.scale.linear()
                     .domain([StartTime, EndTime])  
                     .range([0, winWidth]);  
+
+ function GetDate(d)
+ {
+     return new Date(
+            parseInt(d.substr(0,4)),
+            parseInt(d.substr(5,d.lastIndexOf("."))),
+            parseInt(d.substr(d.lastIndexOf(".")+1,d.length-d.lastIndexOf(".")-1))
+            )
+ }
+ 
+ function ShowUpSidetext(d)
+ {
+     return "translate(" +TranslationT_P(GetDate(d)) +","+ AxisHeight + ")" +  "rotate(" + -45 + ")"    
+ } 
+ 
+ function ShowDownSidetext(d)
+ {  
+     return "translate(" +TranslationT_P(GetDate(d)) +","+ AxisHeight + ")" +  "rotate(" + 45 + ")"
+ }
+ 
+ function Transform(d)
+ {
+      if((i%2)==0)
+        return ShowUpSidetext(d)
+      if((i%2)==1)
+        return ShowDownSidetext(d)
+ }
  
 var text = svg.selectAll("text")
         .data(Logcat)
         .enter()
         .append("text")  
-        .attr("x",    
-   function(d){
-      return TranslationT_P(
-         new Date(
-            parseInt(d.When.substr(0,4)),
-            parseInt(d.When.substr(5,d.When.lastIndexOf("."))),
-            parseInt(d.When.substr(d.When.lastIndexOf(".")+1,d.When.length-d.When.lastIndexOf(".")-1))
-            )
-           )
-           })  
-        .attr("y",AxisHeight)  
         .attr("font-size",30)
         //.attr("font-family","simsun")  
         .text(function(d){return d.What})
-        .attr("transform","rotate(2)")
-        .attr("transform-origin","(0,0)");  
-                           
+        .attr("transform",function(d,i){ Transform(d.When)});
+
+
+function ComputeR(d)
+{
+    if(d==0) return 10;
+    if(d>0) return d*4;
+    if(d<0) return d*-4;
+}
+
+
+function ComputeColor(d)
+{
+  if(parseInt(d)>0) return "Green";
+  if(parseInt(d)==0) return "Black";
+  if(parseInt(d)<0) return "Red";
+}
+
                     
  var node = svg.selectAll('circle')
   .data(Logcat)
   .enter()
   .append('circle')
-  .attr('cx', 
-  
-    function(d){
-      return TranslationT_P(
-         new Date(
-            parseInt(d.When.substr(0,4)),
-            parseInt(d.When.substr(5,d.When.lastIndexOf("."))),
-            parseInt(d.When.substr(d.When.lastIndexOf(".")+1,d.When.length-d.When.lastIndexOf(".")-1))
-            )
-           )
-           }
-    
-    )
-  .attr('cy', function(d){return AxisHeight})
-  .attr('r', function(d){if(d.Level==0) return 10;
-                         if(d.Level>0) return d.Level*4;
-                         if(d.Level<0) return d.Level*-4;})
   .attr("opacity",1)
   .attr('stroke',"white")
   .attr('stroke-width',2)
-  .attr("fill", function(d){if(parseInt(d.Level)>0) return "Green";
-                            if(parseInt(d.Level)==0) return "Black";
-                            if(parseInt(d.Level)<0) return "Red";})
+  .attr('cx', function(d){return TranslationT_P( GetDate(d.When))})
+  .attr('cy', function(d){return AxisHeight})
+  .attr('r', function(d) { return ComputeR( parseInt( d.Level))})
+  .attr("fill", function(d){return ComputeColor(d.Level)})                        
   .on('mouseover', function() {
     d3.select(this).transition().duration(500).attr("opacity",1);
   })
   .on('mouseout', function() {
     d3.select(this).transition().duration(500).attr("opacity",1);
   });
-
+  
   node.append("title")   
-      .text(function(d) { return d.What})
+      .text(function(d) { return d.When})
    });
 
 
