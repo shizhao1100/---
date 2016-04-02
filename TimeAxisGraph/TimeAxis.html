@@ -1,6 +1,7 @@
 <!DOCTYPE html>
+<html>
 <meta charset="utf-8">
-<style>
+<style type="text/css">
 
 .axis text {
   font: 10px sans-serif;
@@ -16,12 +17,31 @@
   shape-rendering: crispEdges;
 }
 
+#ex1Slider{
+    margin-left: 500px;
+    margin-top: 50px;
+    width: 900px;
+}
+
 </style>
 
-<body>
-<script src="d3.v3.js"></script>
-<script>
 
+<body>
+
+
+<input id="ex8" data-slider-id='ex1Slider' type="text" data-slider-min="0" data-slider-max="10000" data-slider-step="1" data-slider-value="5000"/>
+
+<link href="css/bootstrap.min.css" rel="stylesheet">
+<link href="css/bootstrap-slider.css" rel="stylesheet">
+<script src="lib/bootstrap-slider.js"></script>   
+<script src="lib/d3.v3.js"></script>
+<script src="lib/jquery.min.js"></script>
+<script>
+      
+//上下边距
+var marginTD = 50;
+//左右边距
+var marginLR = 300;
 //窗口高度
 var winHeight;
 //窗口宽度
@@ -35,10 +55,12 @@ var EndTime;
 //等级高度
 var TipHeight;
 //初始时间
-var StartTime = new Date(2013, 10, 1);
+var StartTime = new Date(2013, 9, 1);
 //背景颜色 
 document.body.style.backgroundColor="#cccccc"; 
- 
+var sliderPostionX;
+var SliderPostionY;
+var sliderWidth; 
  
  
 // 获取窗口宽度
@@ -57,13 +79,54 @@ if (document.documentElement && document.documentElement.clientHeight && documen
 winHeight = document.documentElement.clientHeight;
 winWidth = document.documentElement.clientWidth;
 }
+
+winHeight = winHeight - 100;
 //主轴位置
 AxisHeight = winHeight/2;
+
 //10等级 单等级间隔 高度（已弃） 
 TipHeight = winHeight/10;
 
+sliderWidth = winWidth * 3 / 4;
+
+sliderPostionX = winWidth/4;
+
+
 //宽度（重新定义）
 winWidth=10000;
+
+
+
+sliderPostionY = 50;
+
+
+window.scroll(5000,0); 
+
+
+var slider = new Slider("#ex8", {
+	tooltip: 'always'
+});
+
+
+
+
+
+function ChangeSlirInPositon(StarPosition)
+{
+    var elem=document.getElementById("ex1Slider");//获取控件
+        // elem.style.marginLeft = StarPosition + "px";//设置left数值
+}
+function ChangeWindowsPostion(StarPosition)
+{
+    window.scroll(StarPosition,0);
+}
+slider.on("change",function()
+{
+    ChangeWindowsPostion(slider.getValue()-500);
+    ChangeSlirInPositon(slider.getValue());
+})
+
+
 
 //获取当前时间
 function getNowFormatDate() {
@@ -94,7 +157,12 @@ EndTime = new Date( year,month,day);
 // TimeTranslation    
 var x = d3.time.scale()
         .domain([StartTime, EndTime])
-        .range([0, winWidth]);
+        .range([marginLR, winWidth - marginLR]);
+
+
+
+
+
 //主轴
 var xAxis = d3.svg.axis()
     .scale(x)
@@ -105,21 +173,37 @@ var svg = d3.select("body").append("svg")
     .attr("height", winHeight)
     .append("g");
 
+
+var defs = svg.append("defs");
+
+
+var arrowMarker = defs.append("marker")
+						.attr("id","arrow")
+						.attr("markerUnits","strokeWidth")
+					    .attr("markerWidth","12")
+                        .attr("markerHeight","12")
+                        .attr("viewBox","0 0 12 12") 
+                        .attr("refX","6")
+                        .attr("refY","6")
+                        .attr("orient","auto");
+;
+
+
+
 svg.append("g")
     .attr("class", "x axis")
     .attr("transform", "translate(0," + winHeight/2 + ")")
     .call(xAxis)
-    .attr("y", 6)
-    .attr("x", 6)
+    .attr("marker-end","url(#arrow)")
     .style("text-anchor", "start");
+
    
-   
-d3.csv("Logcat.csv",function(Logcat){
+d3.csv("Data/Logcat.csv",function(Logcat){
 
 // 时间和像素转换          
 var TranslationT_P = d3.scale.linear()
                     .domain([StartTime, EndTime])  
-                    .range([0, winWidth]);  
+                    .range([marginLR, winWidth - marginLR]);  
 
  function GetDate(d)
  {
@@ -162,24 +246,32 @@ var TranslationT_P = d3.scale.linear()
      return "translate(" +RectifyDownSideX(TranslationT_P(GetDate(d))) +","+ RectifyDownSideY() + ")" +  "rotate(" + 45 + ")"
  }
  
- function Transform(d,i)
+ function ShowTimeNotTtext(d)
+ {  
+     return "translate(" +RectifyDownSideX(TranslationT_P(GetDate(d))) +","+ RectifyDownSideY() + ")" +  "rotate(" + 90 + ")"
+ }
+ 
+ function Transform(d,i,leve)
  {
+      if(leve==0)
+        return ShowTimeNotTtext(d)
       if((i%2)==0)
         return ShowUpSidetext(d)
       if((i%2)==1)
         return ShowDownSidetext(d)
  }
  
+ 
+ 
 var text = svg.selectAll("text")
         .data(Logcat)
         .enter()
         .append("text")  
         .attr("font-size",30)
-        .attr("font-family","KaiTi")  
-        .text(function(d){return d.What})
-        .attr("transform",function(d,i){ return Transform(d.When,i)});
-
-
+        .attr("font-family","KaiTi")
+        .style("font-weight",function(d) {if(d.Level >=4||d.Level<=-4) return "bold"})  
+        .text(function(d){ if (d.Level>2||d.Level<=-2||d.Level==0) return d.What})
+        .attr("transform",function(d,i){ return Transform(d.When,i,d.Level)});
 
 
 function ComputeR(d)
@@ -216,10 +308,27 @@ function ComputeColor(d)
     d3.select(this).transition().duration(500).attr("opacity",1);
   });
   
+  
+  function GetTitleText(When,Level,What)
+  {
+     if((-2<=Level&&Level<3)&&(Level!=0)){
+         return When+What;
+     }
+     else{
+         return When;
+     }
+  }
+  
+  
   node.append("title")   
-      .text(function(d) { return d.When})
+      .text(function(d) { return GetTitleText(d.When,d.Level,d.What)})
    });
 
 
 
 </script>
+
+
+</body>
+</html>
+
